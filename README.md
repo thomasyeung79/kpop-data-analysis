@@ -40,19 +40,21 @@ This project focuses on analysing group distribution, production systems, and ge
 
 1. Clone this repository:
 
-```bash
+bash
 git clone https://github.com/YOUR_USERNAME/kpop-data-analysis.git
 cd kpop-data-analysis
 
 2. Install dependencies:
 
-```bash
+bash
 pip install pandas matplotlib streamlit
 
 3. Run the app:
 
-```bash
+bash
 streamlit run app.py
+
+---
 
 ## 📁 Project Structure
 
@@ -62,11 +64,15 @@ kpop-data-analysis/
 ├── sm_groups.csv
 └── README.md
 
+---
+
 ## 📌 Data Notes
 
 member_count represents the effective group size based on official lineup changes (e.g. member departures).
 The dataset focuses on structural analysis rather than individual member-level data.
 Both active and inactive groups may be included to preserve industry structure.
+
+---
 
 ## 🔥 Future Improvements
 
