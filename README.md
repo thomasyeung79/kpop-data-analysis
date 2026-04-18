@@ -1,86 +1,37 @@
-# K-pop Industry Data Analysis Dashboard
+# K-pop Market Expansion Analysis
 
-An interactive data analysis project exploring the structure of K-pop groups, using SM Entertainment as a case study.
+## 📊 Project Overview
+This project is an interactive data dashboard that analyzes how K-pop groups expand into international markets.
 
-This project focuses on analysing group distribution, production systems, and generational trends through a clean and interactive dashboard built with Streamlit.
+It focuses on:
+- Market expansion patterns across generations
+- Primary vs secondary market strategies
+- The rise of global-first positioning in newer groups
 
----
-
-## 📊 Features
-
-- Interactive filtering by:
-  - Production Center
-  - Generation
-- Group distribution analysis
-- Average group size analysis
-- Summary metrics (total groups, average members, production centers)
-- Clean dashboard layout with tabs
-
----
+## 🚀 Features
+- Interactive filters (company, market, artist type)
+- Multiple visualizations:
+  - Market shift by generation
+  - Global market growth
+  - Secondary market distribution
+  - Market influence analysis
+  - Expansion path (Sankey diagram)
+- Insight section for each chart
 
 ## 🧠 Key Insights
+- Newer K-pop groups increasingly target global markets
+- Japan and Southeast Asia remain key secondary markets
+- The industry is shifting from regional expansion to global-first strategies
 
-- Distribution of groups across production centers
-- Differences between K-pop generations
-- Trends in group size across different eras
-- Structural patterns within SM Entertainment
+## 📂 Dataset Notes
+- Major companies (SM, YG, JYP, HYBE) are fully included
+- Smaller companies are selectively sampled
 
----
-
-## 🛠️ Tech Stack
-
+## 🛠 Tech Stack
 - Python
+- Streamlit
 - Pandas
 - Matplotlib
-- Streamlit
 
----
-
-## 🚀 How to Run
-
-1. Clone this repository:
-
-bash
-git clone https://github.com/YOUR_USERNAME/kpop-data-analysis.git
-cd kpop-data-analysis
-
-2. Install dependencies:
-
-bash
-pip install pandas matplotlib streamlit
-
-3. Run the app:
-
-bash
-streamlit run app.py
-
----
-
-## 📁 Project Structure
-
-kpop-data-analysis/
-│
-├── app.py
-├── sm_groups.csv
-└── README.md
-
----
-
-## 📌 Data Notes
-
-member_count represents the effective group size based on official lineup changes (e.g. member departures).
-The dataset focuses on structural analysis rather than individual member-level data.
-Both active and inactive groups may be included to preserve industry structure.
-
----
-
-## 🔥 Future Improvements
-
-Add YG and JYP for industry comparison
-Introduce member-level dataset
-Add nationality and global distribution analysis
-Deploy dashboard online (Streamlit Cloud)
-
-## 👤 Author
-
-Built as part of a data analysis portfolio project.
+## 🎯 Purpose
+This project simulates a real-world data product, combining data analysis, visualization, and user interaction.
