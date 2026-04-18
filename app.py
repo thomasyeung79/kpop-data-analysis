@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-sns.set_theme(style="whitegrid")
+sns.set_theme(style="whitegrid", palette="pastel")
 
 df = pd.read_csv("kpop_data.csv")
 
