@@ -2,150 +2,203 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# -------------------------
-# 页面设置
-# -------------------------
-st.set_page_config(page_title="SM Analysis Dashboard", layout="wide")
+df = pd.read_csv("kpop_data.csv")
 
-st.title("SM Entertainment Data Analysis Dashboard")
-st.caption("An interactive dashboard analysing SM groups by production center, generation, and group size.")
+def get_generation(year):
+    if year <= 2003:
+        return "1st Gen"
+    elif year <= 2011:
+        return "2nd Gen"
+    elif year <= 2017:
+        return "3rd Gen"
+    elif year <= 2021:
+        return "4th Gen"
+    else:
+        return "5th Gen"
 
-# -------------------------
-# 读取数据
-# -------------------------
-df = pd.read_csv("sm_groups.csv")
+df["generation"] = df["debut_year"].apply(get_generation)
 
-# -------------------------
-# Sidebar 筛选
-# -------------------------
+df_filtered = df.copy()
+df_filtered["secondary_market_clean"] = df_filtered["secondary_market"].fillna("")
+
 st.sidebar.header("Filter Options")
 
-selected_center = st.sidebar.multiselect(
-    "Select Production Center",
-    options=sorted(df["production_center"].unique()),
-    default=sorted(df["production_center"].unique())
+# 公司多选
+selected_companies = st.sidebar.multiselect(
+    "Select Company",
+    options=sorted(df["company"].unique().tolist()),
+    default=sorted(df["company"].unique().tolist())
 )
 
-selected_gen = st.sidebar.multiselect(
-    "Select Generation",
-    options=sorted(df["generation"].unique()),
-    default=sorted(df["generation"].unique())
+# 主市场多选
+selected_markets = st.sidebar.multiselect(
+    "Select Main Market",
+    options=sorted(df["main_market"].unique().tolist()),
+    default=sorted(df["main_market"].unique().tolist())
 )
 
-filtered_df = df[
-    (df["production_center"].isin(selected_center)) &
-    (df["generation"].isin(selected_gen))
+# Secondary Market 多选
+selected_secondary = st.sidebar.multiselect(
+    "Select Secondary Market",
+    options=sorted(df["secondary_market"].dropna().unique().tolist()),
+    default=sorted(df["secondary_market"].dropna().unique().tolist())
+)
+
+# 类型多选
+selected_types = st.sidebar.multiselect(
+    "Select Artist Type",
+    options=sorted(df["artist_type"].unique().tolist()),
+    default=sorted(df["artist_type"].unique().tolist())
+)
+
+# 应用筛选
+df_filtered = df_filtered[
+    (df_filtered["company"].isin(selected_companies)) &
+    (df_filtered["main_market"].isin(selected_markets)) &
+    (df_filtered["secondary_market_clean"].isin(selected_secondary)) &
+    (df_filtered["artist_type"].isin(selected_types))
 ]
 
-# -------------------------
-# 顶部统计卡片
-# -------------------------
-total_groups = len(filtered_df)
-avg_members = round(filtered_df["member_count"].mean(), 2) if total_groups > 0 else 0
-total_centers = filtered_df["production_center"].nunique()
+
+if df_filtered.empty:
+    st.warning("No data available for the selected filters.")
+    st.stop()
+
+st.title("K-pop Market Expansion Analysis")
+
+st.subheader("📊 Key Metrics")
 
 col1, col2, col3 = st.columns(3)
-col1.metric("Total Groups", total_groups)
-col2.metric("Average Members", avg_members)
-col3.metric("Production Centers", total_centers)
 
-st.divider()
+col1.metric("Total Groups", len(df_filtered))
+col2.metric("Main Markets", df_filtered["main_market"].nunique())
+col3.metric("Secondary Markets", df_filtered["secondary_market"].nunique())
 
-# -------------------------
-# 数据表
-# -------------------------
-with st.expander("View Filtered Data"):
-    st.dataframe(filtered_df, use_container_width=True)
+st.caption(f"Showing {len(df_filtered)} records")
 
-# -------------------------
-# Tabs
-# -------------------------
-tab1, tab2 = st.tabs(["Structure Analysis", "Generation Analysis"])
+st.subheader("Market Shift by Generation")
 
-# -------------------------
-# Tab 1: 结构分析
-# -------------------------
-with tab1:
-    st.subheader("Distribution by Production Center")
+gen_market = df.groupby(["generation", "main_market"]).size().unstack(fill_value=0)
 
-    counts = (
-        filtered_df.groupby("production_center")["group_name"]
-        .count()
-        .sort_values(ascending=False)
-    )
+fig, ax = plt.subplots(figsize=(7, 4))
+gen_market.plot(kind="bar", stacked=True, ax=ax)
 
-    fig1, ax1 = plt.subplots(figsize=(8, 5))
-    counts.plot(kind="bar", ax=ax1)
-    ax1.set_title("Distribution of Groups by Production Center")
-    ax1.set_xlabel("Production Center")
-    ax1.set_ylabel("Number of Groups")
-    ax1.grid(axis="y", linestyle="--", alpha=0.7)
+ax.set_xlabel("Generation")
+ax.set_ylabel("Number of Groups")
+ax.set_title("Market Focus Shift Across Generations")
 
-    for i, v in enumerate(counts):
-        ax1.text(i, v + 0.05, str(v), ha="center")
+st.pyplot(fig)
 
-    st.pyplot(fig1)
+st.markdown("### 🔍 Key Insight")
+st.write("""
+Newer generations show a stronger tendency to target global markets, while earlier generations remained more concentrated in Korea and Japan.
+""")
 
-    st.subheader("Average Group Size by Production Center")
+st.markdown("")
 
-    avg_members_center = (
-        filtered_df.groupby("production_center")["member_count"]
-        .mean()
-        .sort_values(ascending=False)
-    )
+st.subheader("Global Market Growth")
 
-    fig2, ax2 = plt.subplots(figsize=(8, 5))
-    avg_members_center.plot(kind="bar", ax=ax2)
-    ax2.set_title("Average Group Size by Production Center")
-    ax2.set_xlabel("Production Center")
-    ax2.set_ylabel("Average Members")
-    ax2.grid(axis="y", linestyle="--", alpha=0.7)
+df["is_global"] = df["main_market"].apply(lambda x: 1 if x == "Global" else 0)
 
-    for i, v in enumerate(avg_members_center):
-        ax2.text(i, v + 0.05, f"{v:.1f}", ha="center")
+global_trend = df.groupby("generation")["is_global"].mean()
 
-    st.pyplot(fig2)
+fig2, ax2 = plt.subplots(figsize=(7, 4))
+global_trend.plot(kind="line", marker="o", ax=ax2)
 
-# -------------------------
-# Tab 2: 世代分析
-# -------------------------
-with tab2:
-    st.subheader("Distribution by Generation")
+ax2.set_ylabel("Proportion of Global-focused Groups")
+ax2.set_title("Rise of Global-first Strategy")
 
-    gen_counts = (
-        filtered_df.groupby("generation")["group_name"]
-        .count()
-        .sort_values()
-    )
+st.pyplot(fig2)
 
-    fig3, ax3 = plt.subplots(figsize=(8, 5))
-    gen_counts.plot(kind="bar", ax=ax3)
-    ax3.set_title("Distribution of Groups by Generation")
-    ax3.set_xlabel("Generation")
-    ax3.set_ylabel("Number of Groups")
-    ax3.grid(axis="y", linestyle="--", alpha=0.7)
+st.markdown("### 🔍 Key Insight")
+st.write("""
+The proportion of global-focused groups rises in newer generations, suggesting a shift from regional expansion to global-first strategies.
+""")
+st.markdown("")
 
-    for i, v in enumerate(gen_counts):
-        ax3.text(i, v + 0.05, str(v), ha="center")
+st.subheader("Secondary Market Distribution")
 
-    st.pyplot(fig3)
+secondary_counts = df["secondary_market"].value_counts()
 
-    st.subheader("Average Group Size by Generation")
+fig3, ax3 = plt.subplots(figsize=(7, 4))
+secondary_counts.plot(kind="bar", ax=ax3)
 
-    avg_members_gen = (
-        filtered_df.groupby("generation")["member_count"]
-        .mean()
-        .sort_values()
-    )
+ax3.set_title("Secondary Market Distribution")
+ax3.set_ylabel("Number of Groups")
 
-    fig4, ax4 = plt.subplots(figsize=(8, 5))
-    avg_members_gen.plot(kind="bar", ax=ax4)
-    ax4.set_title("Average Group Size by Generation")
-    ax4.set_xlabel("Generation")
-    ax4.set_ylabel("Average Members")
-    ax4.grid(axis="y", linestyle="--", alpha=0.7)
+st.pyplot(fig3)
 
-    for i, v in enumerate(avg_members_gen):
-        ax4.text(i, v + 0.05, f"{v:.1f}", ha="center")
+st.markdown("### 🔍 Key Insight")
+st.write("""
+Japan and Southeast Asia appear frequently as secondary markets, indicating their importance as expansion destinations beyond core domestic audiences.
+""")
+st.markdown("")
 
-    st.pyplot(fig4)
+st.subheader("Weighted Market Influence")
+
+market_score = {}
+
+for _, row in df.iterrows():
+    main = row["main_market"]
+    sec = row["secondary_market"]
+
+    market_score[main] = market_score.get(main, 0) + 1
+    market_score[sec] = market_score.get(sec, 0) + 0.5
+
+market_df = pd.DataFrame.from_dict(market_score, orient="index", columns=["score"])
+market_df = market_df.sort_values(by="score", ascending=False)
+
+fig4, ax4 = plt.subplots(figsize=(7, 4))
+market_df.plot(kind="bar", ax=ax4)
+
+ax4.set_title("Overall Market Influence (Weighted)")
+ax4.set_ylabel("Score")
+
+st.pyplot(fig4)
+
+st.markdown("### 🔍 Key Insight")
+st.write("""
+When primary and secondary markets are considered together, Korea remains central, while Japan, Global, and Southeast Asia show strong influence in overall expansion patterns.
+""")
+st.markdown("")
+
+st.subheader("Top Market Expansion Paths")
+
+flow_df = (
+    df.groupby(["main_market", "secondary_market"])
+      .size()
+      .reset_index(name="count")
+)
+
+flow_df["path"] = flow_df["main_market"] + " → " + flow_df["secondary_market"]
+flow_df = flow_df.sort_values("count", ascending=True).tail(10)
+
+fig5, ax5 = plt.subplots(figsize=(7, 4))
+ax5.barh(flow_df["path"], flow_df["count"])
+
+ax5.set_xlabel("Number of Groups")
+ax5.set_ylabel("Expansion Path")
+ax5.set_title("Top Market Expansion Paths")
+
+st.pyplot(fig5)
+
+st.markdown("### 🔍 Key Insight")
+st.write("""
+The most common expansion paths reveal that K-pop groups often move from Korea into Japan, Global markets, or Southeast Asia, reflecting structured international growth strategies.
+""")
+st.markdown("")
+
+st.subheader("Prediction")
+
+st.write("""
+Groups debuting after 2020 are more likely to adopt a global-first strategy rather than expanding region by region.
+""")
+st.markdown("")
+
+st.subheader("Data Notes")
+
+st.write("""
+This dataset provides full coverage of major K-pop companies (SM, JYP, YG, HYBE), while groups from smaller companies are selectively sampled to reflect broader industry trends.
+
+Primary and secondary markets are defined based on popularity, fanbase, and market visibility rather than company operational headquarters.
+""")
