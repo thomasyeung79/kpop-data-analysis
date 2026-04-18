@@ -74,7 +74,7 @@ col1.metric("Total Groups", len(df_filtered))
 col2.metric("Main Markets", df_filtered["main_market"].nunique())
 col3.metric("Secondary Markets", df_filtered["secondary_market"].nunique())
 
-st.caption(f"Showing {len(df_filtered)} records")
+st.markdown("---")
 
 st.subheader("Market Shift by Generation")
 
@@ -91,10 +91,41 @@ st.pyplot(fig)
 
 st.markdown("### 🔍 Key Insight")
 st.write("""
-Newer generations show a stronger tendency to target global markets, while earlier generations remained more concentrated in Korea and Japan.
+Newer generations increasingly prioritize global markets, marking a shift from region-focused expansion (Korea and Japan) to global-first strategies.
+
+This reflects a structural evolution in the K-pop industry, where international audiences are now considered core rather than secondary.
 """)
 
-st.markdown("")
+if st.button("🤖 Generate Insight (AI Simulation)", key="ai1"):
+
+    total = len(df_filtered)
+
+    if total == 0:
+        st.warning("No data available.")
+    else:
+        market_counts = df_filtered["main_market"].value_counts()
+
+        top_market = market_counts.idxmax()
+        top_value = market_counts.max()
+
+        second_market = market_counts.index.tolist()[1] if len(market_counts) > 1 else None
+
+        top_ratio = round(top_value / total * 100, 1)
+
+        st.markdown("### 🤖 AI Generated Insight")
+
+        st.markdown(f"""
+    **Summary**
+
+    - Dominant market: **{top_market}** ({top_value} groups, {top_ratio}%)
+    - Secondary market: **{second_market if second_market else 'N/A'}**
+
+    **Interpretation**
+
+    This pattern suggests a structured expansion strategy, where companies prioritize key markets before expanding globally.
+    """)
+
+st.markdown("---")
 
 st.subheader("Global Market Growth")
 
@@ -114,7 +145,7 @@ st.markdown("### 🔍 Key Insight")
 st.write("""
 The proportion of global-focused groups rises in newer generations, suggesting a shift from regional expansion to global-first strategies.
 """)
-st.markdown("")
+st.markdown("---")
 
 st.subheader("Secondary Market Distribution")
 
@@ -132,7 +163,7 @@ st.markdown("### 🔍 Key Insight")
 st.write("""
 Japan and Southeast Asia appear frequently as secondary markets, indicating their importance as expansion destinations beyond core domestic audiences.
 """)
-st.markdown("")
+st.markdown("---")
 
 st.subheader("Weighted Market Influence")
 
@@ -160,7 +191,7 @@ st.markdown("### 🔍 Key Insight")
 st.write("""
 When primary and secondary markets are considered together, Korea remains central, while Japan, Global, and Southeast Asia show strong influence in overall expansion patterns.
 """)
-st.markdown("")
+st.markdown("---")
 
 st.subheader("Top Market Expansion Paths")
 
@@ -186,14 +217,16 @@ st.markdown("### 🔍 Key Insight")
 st.write("""
 The most common expansion paths reveal that K-pop groups often move from Korea into Japan, Global markets, or Southeast Asia, reflecting structured international growth strategies.
 """)
-st.markdown("")
+st.markdown("---")
 
 st.subheader("Prediction")
 
 st.write("""
-Groups debuting after 2020 are more likely to adopt a global-first strategy rather than expanding region by region.
+Groups debuting after 2020 are increasingly adopting a global-first strategy rather than following traditional region-by-region expansion paths.
+
+This trend suggests that future K-pop groups will prioritize international audiences from the outset, leveraging digital platforms and global fanbases more aggressively.
 """)
-st.markdown("")
+st.markdown("---")
 
 st.subheader("Data Notes")
 
@@ -201,4 +234,6 @@ st.write("""
 This dataset provides full coverage of major K-pop companies (SM, JYP, YG, HYBE), while groups from smaller companies are selectively sampled to reflect broader industry trends.
 
 Primary and secondary markets are defined based on popularity, fanbase, and market visibility rather than company operational headquarters.
+
+This analysis is intended to highlight general trends rather than provide exhaustive industry coverage.
 """)
