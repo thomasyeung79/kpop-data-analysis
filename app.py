@@ -3,9 +3,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-sns.set_theme(style="whitegrid", palette="pastel")
+st.set_page_config(page_title="K-pop Industry Analysis", layout="wide")
 
 df = pd.read_csv("kpop_data.csv")
+
 
 def get_generation(year):
     if year <= 2003:
@@ -19,224 +20,412 @@ def get_generation(year):
     else:
         return "5th Gen"
 
+
 df["generation"] = df["debut_year"].apply(get_generation)
 
-df_filtered = df.copy()
-df_filtered["secondary_market_clean"] = df_filtered["secondary_market"].fillna("")
+BIG4 = ["SM", "JYP", "YG", "HYBE"]
+
+df["company_group"] = df["company"].apply(
+    lambda x: x if x in BIG4 else "Others"
+)
+
+df["secondary_market"] = df["secondary_market"].fillna("N/A")
+
+
+st.title("🎤 K-pop Industry Analysis Dashboard")
+st.caption(
+    "A data dashboard analysing K-pop artists by company, generation, market, gender, and artist type."
+)
+
+mode = st.radio(
+    "Select Mode",
+    ["Dashboard", "Story Mode"],
+    horizontal=True
+)
+
 
 st.sidebar.header("Filter Options")
 
-# 公司多选
-selected_companies = st.sidebar.multiselect(
-    "Select Company",
-    options=sorted(df["company"].unique().tolist()),
-    default=sorted(df["company"].unique().tolist())
+selected_type = st.sidebar.multiselect(
+    "Artist Type",
+    options=sorted(df["artist_type"].unique()),
+    default=sorted(df["artist_type"].unique())
 )
 
-# 主市场多选
-selected_markets = st.sidebar.multiselect(
-    "Select Main Market",
-    options=sorted(df["main_market"].unique().tolist()),
-    default=sorted(df["main_market"].unique().tolist())
+selected_gender = st.sidebar.multiselect(
+    "Gender",
+    options=sorted(df["gender"].unique()),
+    default=sorted(df["gender"].unique())
 )
 
-# Secondary Market 多选
-selected_secondary = st.sidebar.multiselect(
-    "Select Secondary Market",
-    options=sorted(df["secondary_market"].dropna().unique().tolist()),
-    default=sorted(df["secondary_market"].dropna().unique().tolist())
+selected_market = st.sidebar.multiselect(
+    "Main Market",
+    options=sorted(df["main_market"].unique()),
+    default=sorted(df["main_market"].unique())
 )
 
-# 类型多选
-selected_types = st.sidebar.multiselect(
-    "Select Artist Type",
-    options=sorted(df["artist_type"].unique().tolist()),
-    default=sorted(df["artist_type"].unique().tolist())
+selected_generation = st.sidebar.multiselect(
+    "Generation",
+    options=["1st Gen", "2nd Gen", "3rd Gen", "4th Gen", "5th Gen"],
+    default=["1st Gen", "2nd Gen", "3rd Gen", "4th Gen", "5th Gen"]
 )
 
-# 应用筛选
-df_filtered = df_filtered[
-    (df_filtered["company"].isin(selected_companies)) &
-    (df_filtered["main_market"].isin(selected_markets)) &
-    (df_filtered["secondary_market_clean"].isin(selected_secondary)) &
-    (df_filtered["artist_type"].isin(selected_types))
+base_df = df[
+    (df["artist_type"].isin(selected_type)) &
+    (df["gender"].isin(selected_gender)) &
+    (df["main_market"].isin(selected_market)) &
+    (df["generation"].isin(selected_generation))
 ]
 
-
-if df_filtered.empty:
+if base_df.empty:
     st.warning("No data available for the selected filters.")
     st.stop()
 
-st.title("K-pop Market Expansion Analysis")
 
-st.subheader("📊 Key Metrics")
+def show_dashboard(data, title):
+    if data.empty:
+        st.warning("No data available in this section.")
+        return
 
-col1, col2, col3 = st.columns(3)
+    st.subheader(title)
 
-col1.metric("Total Groups", len(df_filtered))
-col2.metric("Main Markets", df_filtered["main_market"].nunique())
-col3.metric("Secondary Markets", df_filtered["secondary_market"].nunique())
+    col1, col2, col3, col4 = st.columns(4)
 
-st.markdown("---")
+    col1.metric("Total Artists", len(data))
+    col2.metric("Companies", data["company"].nunique())
+    col3.metric("Main Markets", data["main_market"].nunique())
+    col4.metric("Generations", data["generation"].nunique())
 
-st.subheader("Market Shift by Generation")
+    st.markdown("### 📋 Artist Dataset")
+    st.dataframe(
+        data.sort_values(["company", "debut_year", "artist_name"]),
+        use_container_width=True,
+        height=260
+    )
 
-gen_market = df.groupby(["generation", "main_market"]).size().unstack(fill_value=0)
+    st.markdown("---")
 
-fig, ax = plt.subplots(figsize=(7, 4))
-gen_market.plot(kind="bar", stacked=True, ax=ax)
+    col_a, col_b = st.columns(2)
 
-ax.set_xlabel("Generation")
-ax.set_ylabel("Number of Groups")
-ax.set_title("Market Focus Shift Across Generations")
+    with col_a:
+        st.markdown("### 🏢 Company Distribution")
+        company_counts = data["company"].value_counts()
 
-st.pyplot(fig)
+        fig, ax = plt.subplots(figsize=(6, 4))
+        company_counts.plot(kind="bar", ax=ax)
+        ax.set_xlabel("Company")
+        ax.set_ylabel("Number of Artists")
+        ax.set_title("Artists by Company")
+        st.pyplot(fig)
 
-st.markdown("### 🔍 Key Insight")
-st.write("""
-Newer generations increasingly prioritize global markets, marking a shift from region-focused expansion (Korea and Japan) to global-first strategies.
+    with col_b:
+        st.markdown("### 👥 Artist Type")
+        type_counts = data["artist_type"].value_counts()
 
-This reflects a structural evolution in the K-pop industry, where international audiences are now considered core rather than secondary.
+        fig, ax = plt.subplots(figsize=(6, 4))
+        type_counts.plot(kind="bar", ax=ax)
+        ax.set_xlabel("Artist Type")
+        ax.set_ylabel("Count")
+        ax.set_title("Group vs Solo")
+        st.pyplot(fig)
+
+    col_c, col_d = st.columns(2)
+
+    with col_c:
+        st.markdown("### 📅 Debut Year Trend")
+        debut_trend = data["debut_year"].value_counts().sort_index()
+
+        fig, ax = plt.subplots(figsize=(6, 4))
+        debut_trend.plot(kind="line", marker="o", ax=ax)
+        ax.set_xlabel("Debut Year")
+        ax.set_ylabel("Number of Artists")
+        ax.set_title("Debut Trend Over Time")
+        st.pyplot(fig)
+
+    with col_d:
+        st.markdown("### 🌍 Main Market Distribution")
+        market_counts = data["main_market"].value_counts()
+
+        fig, ax = plt.subplots(figsize=(6, 4))
+        market_counts.plot(kind="bar", ax=ax)
+        ax.set_xlabel("Main Market")
+        ax.set_ylabel("Count")
+        ax.set_title("Main Market Focus")
+        st.pyplot(fig)
+
+    st.markdown("---")
+
+    st.markdown("### 🔍 Key Insights")
+
+    top_company = data["company"].value_counts().idxmax()
+    top_market = data["main_market"].value_counts().idxmax()
+    top_generation = data["generation"].value_counts().idxmax()
+
+    st.write(f"""
+- **{top_company}** has the largest number of artists in this view.
+- The most common main market is **{top_market}**.
+- The most represented generation is **{top_generation}**.
+- This suggests that company strategy, debut timing, and market focus are closely connected in the K-pop industry.
 """)
 
-if st.button("🤖 Generate Insight (AI Simulation)", key="ai1"):
 
-    total = len(df_filtered)
+def generate_ai_style_insight(data):
+    if data.empty:
+        return "No data available for insight generation."
 
-    if total == 0:
-        st.warning("No data available.")
+    top_company = data["company_group"].value_counts().idxmax()
+    top_market = data["main_market"].value_counts().idxmax()
+    top_generation = data["generation"].value_counts().idxmax()
+
+    group_count = len(data[data["artist_type"] == "group"])
+    solo_count = len(data[data["artist_type"] == "solo"])
+
+    insight = f"""
+Based on the current dataset, **{top_company}** shows the strongest presence among major K-pop companies.
+
+The data also suggests that **{top_market}** is the most important main market, while **{top_generation}** artists are the most represented generation.
+
+From an artist-structure perspective, the dataset contains **{group_count} groups** and **{solo_count} solo artists**, showing that group-based branding is still the dominant model in the K-pop industry.
+
+Overall, this indicates that K-pop companies continue to rely on group identity while expanding into international markets through selected solo acts and market-specific strategies.
+"""
+    return insight
+
+
+if mode == "Dashboard":
+
+    tabs = st.tabs(["All", "SM", "JYP", "YG", "HYBE", "Others"])
+
+    with tabs[0]:
+        show_dashboard(base_df, "🌐 Overall Industry View")
+
+    with tabs[1]:
+        show_dashboard(
+            base_df[base_df["company_group"] == "SM"],
+            "🏢 SM Entertainment"
+        )
+
+    with tabs[2]:
+        show_dashboard(
+            base_df[base_df["company_group"] == "JYP"],
+            "🏢 JYP Entertainment"
+        )
+
+    with tabs[3]:
+        show_dashboard(
+            base_df[base_df["company_group"] == "YG"],
+            "🏢 YG Entertainment"
+        )
+
+    with tabs[4]:
+        show_dashboard(
+            base_df[base_df["company_group"] == "HYBE"],
+            "🏢 HYBE"
+        )
+
+    with tabs[5]:
+        show_dashboard(
+            base_df[base_df["company_group"] == "Others"],
+            "🏢 Other Companies"
+        )
+
+    st.markdown("---")
+
+    st.subheader("🏢 Company Comparison")
+
+    compare_df = base_df.copy()
+    compare_df = compare_df[
+        compare_df["company_group"].isin(["SM", "JYP", "YG", "HYBE"])
+    ]
+
+    if compare_df.empty:
+        st.warning("No data available for comparison.")
     else:
-        market_counts = df_filtered["main_market"].value_counts()
+        col1, col2 = st.columns(2)
 
-        top_market = market_counts.idxmax()
-        top_value = market_counts.max()
+        with col1:
+            st.markdown("### 📊 Artist Count by Company")
+            company_counts = compare_df["company_group"].value_counts()
 
-        second_market = market_counts.index.tolist()[1] if len(market_counts) > 1 else None
+            fig, ax = plt.subplots()
+            company_counts.plot(kind="bar", ax=ax)
+            ax.set_xlabel("Company")
+            ax.set_ylabel("Number of Artists")
+            st.pyplot(fig)
 
-        top_ratio = round(top_value / total * 100, 1)
+        with col2:
+            st.markdown("### 👥 Group vs Solo by Company")
 
-        st.markdown("### 🤖 AI Generated Insight")
+            pivot = pd.crosstab(
+                compare_df["company_group"],
+                compare_df["artist_type"]
+            )
 
-        st.markdown(f"""
-    **Summary**
+            fig, ax = plt.subplots()
+            pivot.plot(kind="bar", stacked=True, ax=ax)
+            ax.set_xlabel("Company")
+            ax.set_ylabel("Count")
+            st.pyplot(fig)
 
-    - Dominant market: **{top_market}** ({top_value} groups, {top_ratio}%)
-    - Secondary market: **{second_market if second_market else 'N/A'}**
+        st.markdown("---")
 
-    **Interpretation**
+        col3, col4 = st.columns(2)
 
-    This pattern suggests a structured expansion strategy, where companies prioritize key markets before expanding globally.
-    """)
+        with col3:
+            st.markdown("### 📅 Generation Distribution")
 
-st.markdown("---")
+            gen_pivot = pd.crosstab(
+                compare_df["company_group"],
+                compare_df["generation"]
+            )
 
-st.subheader("Global Market Growth")
+            fig, ax = plt.subplots()
+            gen_pivot.plot(kind="bar", stacked=True, ax=ax)
+            ax.set_xlabel("Company")
+            ax.set_ylabel("Count")
+            st.pyplot(fig)
 
-df["is_global"] = df["main_market"].apply(lambda x: 1 if x == "Global" else 0)
+        with col4:
+            st.markdown("### 🌍 Market Focus")
 
-global_trend = df.groupby("generation")["is_global"].mean()
+            market_pivot = pd.crosstab(
+                compare_df["company_group"],
+                compare_df["main_market"]
+            )
 
-fig2, ax2 = plt.subplots(figsize=(7, 4))
-global_trend.plot(kind="line", marker="o", ax=ax2)
+            fig, ax = plt.subplots()
+            market_pivot.plot(kind="bar", stacked=True, ax=ax)
+            ax.set_xlabel("Company")
+            ax.set_ylabel("Count")
+            st.pyplot(fig)
 
-ax2.set_ylabel("Proportion of Global-focused Groups")
-ax2.set_title("Rise of Global-first Strategy")
+        st.markdown("---")
 
-st.pyplot(fig2)
+        st.subheader("🚀 Market Expansion Path")
 
-st.markdown("### 🔍 Key Insight")
-st.write("""
-The proportion of global-focused groups rises in newer generations, suggesting a shift from regional expansion to global-first strategies.
+        market_flow = (
+            compare_df.groupby(["company_group", "main_market"])
+            .size()
+            .unstack()
+            .fillna(0)
+        )
+
+        fig, ax = plt.subplots()
+        market_flow.plot(kind="bar", stacked=True, ax=ax)
+
+        ax.set_xlabel("Company")
+        ax.set_ylabel("Artist Count")
+        st.pyplot(fig)
+
+    st.markdown("---")
+
+    st.subheader("🤖 AI-Style Insight Generator")
+
+    if st.button("🤖 Generate Industry Insight"):
+        insight_text = generate_ai_style_insight(base_df)
+        st.info(insight_text)
+
+    st.markdown("---")
+
+    st.subheader("🎯 Customize Analysis")
+
+    selected_market_single = st.selectbox(
+        "Select Main Market",
+        options=sorted(base_df["main_market"].unique())
+    )
+
+    filtered_df = base_df[base_df["main_market"] == selected_market_single]
+
+    st.write(f"Showing data for market: {selected_market_single}")
+
+    st.dataframe(filtered_df, use_container_width=True)
+
+    st.markdown("---")
+
+    st.subheader("📈 Strategy Recommendation")
+
+    top_market = base_df["main_market"].value_counts().idxmax()
+
+    recommendation = f"""
+Based on current data, companies should prioritize expansion into **{top_market}** market.
+
+Focusing on this region could increase global influence and audience reach.
+"""
+
+    st.success(recommendation)
+
+    st.markdown("---")
+
+    st.subheader("📌 Data Notes")
+    st.write("""
+This dataset focuses on officially recognised and currently relevant K-pop artists and related solo acts.
+
+Company classification is based on current or officially recognised affiliation where possible.  
+For analysis purposes, SM, JYP, YG, and HYBE are treated as major company groups, while other companies are grouped under Others in the dashboard view.
 """)
-st.markdown("---")
 
-st.subheader("Secondary Market Distribution")
 
-secondary_counts = df["secondary_market"].value_counts()
+elif mode == "Story Mode":
 
-fig3, ax3 = plt.subplots(figsize=(7, 4))
-secondary_counts.plot(kind="bar", ax=ax3)
+    st.subheader("📖 K-pop Industry Story Mode")
 
-ax3.set_title("Secondary Market Distribution")
-ax3.set_ylabel("Number of Groups")
+    total_artists = len(base_df)
+    total_companies = base_df["company"].nunique()
+    top_company_group = base_df["company_group"].value_counts().idxmax()
+    top_market = base_df["main_market"].value_counts().idxmax()
+    top_generation = base_df["generation"].value_counts().idxmax()
 
-st.pyplot(fig3)
+    group_count = len(base_df[base_df["artist_type"] == "group"])
+    solo_count = len(base_df[base_df["artist_type"] == "solo"])
 
-st.markdown("### 🔍 Key Insight")
-st.write("""
-Japan and Southeast Asia appear frequently as secondary markets, indicating their importance as expansion destinations beyond core domestic audiences.
+    st.markdown(f"""
+### 1. Industry Overview
+
+This dataset contains **{total_artists} artists** across **{total_companies} companies**.
+
+The dataset includes both groups and solo artists:
+- Groups: **{group_count}**
+- Solo artists: **{solo_count}**
+
+This structure reflects the dual nature of the K-pop industry: group-based branding remains central, while solo careers are also becoming increasingly important.
+
+---
+
+### 2. Company Structure
+
+The strongest company group in the current filtered dataset is **{top_company_group}**.
+
+SM, JYP, YG, and HYBE are treated as major company groups, while other agencies are grouped as **Others** for broader industry comparison.
+
+This allows the dashboard to compare both major company strategies and the wider K-pop ecosystem.
+
+---
+
+### 3. Market Direction
+
+The most common main market is **{top_market}**.
+
+This suggests that market focus is not only shaped by artist identity, but also by company strategy, language, and international expansion plans.
+
+---
+
+### 4. Generation Trend
+
+The most represented generation is **{top_generation}**.
+
+This helps show how different eras of K-pop are represented in the dataset and how market strategies have shifted across generations.
+
+---
+
+### 5. Key Conclusion
+
+K-pop companies still rely heavily on group identity, but solo artists and market-specific strategies are becoming more important.
+
+The industry is moving from a Korea-centered model toward a more diversified global strategy.
 """)
-st.markdown("---")
 
-st.subheader("Weighted Market Influence")
+    st.markdown("---")
 
-market_score = {}
+    st.subheader("🤖 Story Insight")
 
-for _, row in df.iterrows():
-    main = row["main_market"]
-    sec = row["secondary_market"]
-
-    market_score[main] = market_score.get(main, 0) + 1
-    market_score[sec] = market_score.get(sec, 0) + 0.5
-
-market_df = pd.DataFrame.from_dict(market_score, orient="index", columns=["score"])
-market_df = market_df.sort_values(by="score", ascending=False)
-
-fig4, ax4 = plt.subplots(figsize=(7, 4))
-market_df.plot(kind="bar", ax=ax4)
-
-ax4.set_title("Overall Market Influence (Weighted)")
-ax4.set_ylabel("Score")
-
-st.pyplot(fig4)
-
-st.markdown("### 🔍 Key Insight")
-st.write("""
-When primary and secondary markets are considered together, Korea remains central, while Japan, Global, and Southeast Asia show strong influence in overall expansion patterns.
-""")
-st.markdown("---")
-
-st.subheader("Top Market Expansion Paths")
-
-flow_df = (
-    df.groupby(["main_market", "secondary_market"])
-      .size()
-      .reset_index(name="count")
-)
-
-flow_df["path"] = flow_df["main_market"] + " → " + flow_df["secondary_market"]
-flow_df = flow_df.sort_values("count", ascending=True).tail(10)
-
-fig5, ax5 = plt.subplots(figsize=(7, 4))
-ax5.barh(flow_df["path"], flow_df["count"])
-
-ax5.set_xlabel("Number of Groups")
-ax5.set_ylabel("Expansion Path")
-ax5.set_title("Top Market Expansion Paths")
-
-st.pyplot(fig5)
-
-st.markdown("### 🔍 Key Insight")
-st.write("""
-The most common expansion paths reveal that K-pop groups often move from Korea into Japan, Global markets, or Southeast Asia, reflecting structured international growth strategies.
-""")
-st.markdown("---")
-
-st.subheader("Prediction")
-
-st.write("""
-Groups debuting after 2020 are increasingly adopting a global-first strategy rather than following traditional region-by-region expansion paths.
-
-This trend suggests that future K-pop groups will prioritize international audiences from the outset, leveraging digital platforms and global fanbases more aggressively.
-""")
-st.markdown("---")
-
-st.subheader("Data Notes")
-
-st.write("""
-This dataset provides full coverage of major K-pop companies (SM, JYP, YG, HYBE), while groups from smaller companies are selectively sampled to reflect broader industry trends.
-
-Primary and secondary markets are defined based on popularity, fanbase, and market visibility rather than company operational headquarters.
-
-This analysis is intended to highlight general trends rather than provide exhaustive industry coverage.
-""")
+    st.info(generate_ai_style_insight(base_df))
