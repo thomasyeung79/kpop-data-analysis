@@ -32,10 +32,11 @@ df["company_group"] = df["company"].apply(
 df["secondary_market"] = df["secondary_market"].fillna("N/A")
 
 
-st.title("🎤 K-pop Industry Analysis Dashboard")
-st.caption(
-    "A data dashboard analysing K-pop artists by company, generation, market, gender, and artist type."
-)
+st.title("🎤 K-pop Industry Intelligence & Strategy System")
+st.info("""
+This dashboard analyses K-pop artists across company, generation, market focus, and artist type.
+It helps identify industry concentration, market expansion opportunities, and global strategy directions.
+""")
 
 mode = st.radio(
     "Select Mode",
@@ -169,27 +170,264 @@ def show_dashboard(data, title):
 """)
 
 
-def generate_ai_style_insight(data):
-    if data.empty:
-        return "No data available for insight generation."
+def generate_ai_insight(df):
+    if df.empty:
+        return "No data available for analysis."
 
-    top_company = data["company_group"].value_counts().idxmax()
-    top_market = data["main_market"].value_counts().idxmax()
-    top_generation = data["generation"].value_counts().idxmax()
+    top_company = df["company"].value_counts().idxmax()
+    top_market = df["main_market"].value_counts().idxmax()
+    top_gen = df["generation"].value_counts().idxmax()
 
-    group_count = len(data[data["artist_type"] == "group"])
-    solo_count = len(data[data["artist_type"] == "solo"])
+    company_concentration = round(
+        df["company"].value_counts(normalize=True).max() * 100, 1
+    )
 
-    insight = f"""
-Based on the current dataset, **{top_company}** shows the strongest presence among major K-pop companies.
+    market_diversity = df["main_market"].nunique()
 
-The data also suggests that **{top_market}** is the most important main market, while **{top_generation}** artists are the most represented generation.
+    group_ratio = round(
+        len(df[df["artist_type"] == "group"]) / len(df) * 100, 1
+    )
 
-From an artist-structure perspective, the dataset contains **{group_count} groups** and **{solo_count} solo artists**, showing that group-based branding is still the dominant model in the K-pop industry.
+    return f"""
+## 📊 AI Industry Insight Report
 
-Overall, this indicates that K-pop companies continue to rely on group identity while expanding into international markets through selected solo acts and market-specific strategies.
+### 🏢 Industry Structure
+- Dominant Company: **{top_company}**
+- Market Concentration: **{company_concentration}%** (Top company share)
+
+👉 This indicates a {'highly centralized' if company_concentration > 40 else 'relatively competitive'} industry structure.
+
+---
+
+### 🌍 Market Strategy
+- Primary Market Focus: **{top_market}**
+- Market Diversity Score: **{market_diversity}/5**
+
+👉 The industry is currently {'over-focused on one region' if market_diversity <= 2 else 'diversifying globally'}.
+
+---
+
+### 📅 Generation Trend
+- Leading Generation: **{top_gen}**
+
+👉 This reflects where current industry momentum is concentrated.
+
+---
+
+### 👥 Artist Strategy
+- Group Dominance: **{group_ratio}% groups**
+
+👉 K-pop still relies heavily on group-based branding.
+
+---
+
+### 🚀 Strategic Recommendation
+- Expand into **underrepresented markets** (e.g. Southeast Asia, USA)
+- Invest in **solo artist development** for global scalability
+- Diversify company portfolios to reduce risk
+
+---
+
+### 💡 Final Insight
+The K-pop industry is evolving from a **company-driven model**  
+to a **market-driven global expansion system**.
 """
-    return insight
+
+
+def predict_next_market(df):
+    if df.empty:
+        return "No data available."
+
+    market_counts = df["main_market"].value_counts()
+    current_top_market = market_counts.idxmax()
+
+    all_markets = set(df["main_market"].unique())
+    underrepresented = market_counts[market_counts < market_counts.mean()]
+
+    if not underrepresented.empty:
+        next_market = underrepresented.index[0]
+    else:
+        next_market = current_top_market
+
+    return f"""
+## 🚀 Next Market Prediction
+
+### Current strongest market:
+**{current_top_market}**
+
+### Recommended next growth market:
+**{next_market}**
+
+### Why this market?
+- It is currently underrepresented in the dataset.
+- It may offer expansion potential.
+- It reduces overdependence on the dominant market.
+
+### Strategic Direction:
+Companies should test this market through:
+- English or local-language releases
+- Social media-first promotion
+- Collaboration with local influencers or artists
+"""
+
+
+def generate_us_strategy(df):
+    if df.empty:
+        return "No data available."
+
+    us_focus = len(df[df["main_market"] == "US"])
+    total = len(df)
+
+    us_ratio = round(us_focus / total * 100, 1)
+
+    group_ratio = round(
+        len(df[df["artist_type"] == "group"]) / total * 100, 1
+    )
+
+    top_company = df["company"].value_counts().idxmax()
+
+    return f"""
+## 🇺🇸 US Market Entry Strategy Engine
+
+### 📊 Current Situation
+- US Market Penetration: **{us_ratio}%**
+- Dominant Company: **{top_company}**
+- Group-based Structure: **{group_ratio}%**
+
+👉 Insight:
+K-pop is still largely **Asia-first**, with limited deep penetration into the US mainstream.
+
+---
+
+### 🚧 Key Challenges
+1. Cultural localisation gap (language & storytelling)
+2. Lack of radio / playlist penetration
+3. Weak collaboration with US mainstream artists
+4. Over-reliance on fandom-driven success
+
+---
+
+### 🚀 Winning Strategy Framework
+
+#### 1. Market Entry Model
+- Target **TikTok + Spotify virality first**
+- Avoid traditional K-pop debut model
+
+#### 2. Content Strategy
+- English or bilingual releases
+- Focus on **relatable themes** (not just performance)
+
+#### 3. Artist Positioning
+- Push **solo + small-unit acts**
+- Build individual identity (US prefers individuality > group identity)
+
+#### 4. Collaboration Strategy
+- Work with US producers & artists
+- Feature-driven exposure (NOT isolated promotion)
+
+#### 5. Platform Strategy
+- TikTok (discovery)
+- Spotify (conversion)
+- YouTube Shorts (retention)
+
+---
+
+### 🧠 Strategic Insight
+The US market is NOT won by scale.
+
+It is won by:
+👉 **localisation + storytelling + algorithm mastery**
+
+---
+
+### 🎯 Final Recommendation
+K-pop companies should transition from:
+
+❌ “Exporting Korean success model”  
+➡️  
+✅ “Building US-native pop identity”
+"""
+
+
+def calculate_us_potential(df):
+    result = []
+
+    SUPERSTARS = [
+        "BLACKPINK", "BTS", "NewJeans", "aespa"
+    ]
+
+    for company in df["company_group"].unique():
+        sub = df[df["company_group"] == company]
+
+        global_score = len(sub[sub["main_market"].isin(["Global", "USA"])])
+        recent_score = len(sub[sub["debut_year"] >= 2018])
+
+        superstar_score = 0
+        for artist in sub["artist_name"]:
+            if artist in SUPERSTARS:
+                superstar_score += 5
+
+        score = (
+            global_score * 2 +
+            recent_score * 1.5 +
+            superstar_score * 3
+        )
+
+        result.append({
+            "company": company,
+            "us_potential_score": round(score, 2)
+        })
+
+    return pd.DataFrame(result).sort_values(
+        "us_potential_score",
+        ascending=False
+    )
+
+
+def predict_next_global_hit(df):
+    if df.empty:
+        return "No data available."
+
+    candidates = []
+
+    for _, row in df.iterrows():
+        score = 0
+
+        # Recent debut advantage
+        if row["debut_year"] >= 2018:
+            score += 3
+
+        # Global / US market advantage
+        if row["main_market"] in ["Global", "USA"]:
+            score += 4
+
+        # Group advantage
+        if row["artist_type"] == "group":
+            score += 2
+
+        # Big company advantage
+        if row["company_group"] in ["SM", "JYP", "YG", "HYBE"]:
+            score += 2
+
+        # 5th gen bonus
+        if row["generation"] == "5th Gen":
+            score += 2
+
+        candidates.append({
+            "artist_name": row["artist_name"],
+            "company": row["company"],
+            "company_group": row["company_group"],
+            "generation": row["generation"],
+            "main_market": row["main_market"],
+            "global_hit_score": score
+        })
+
+    result = pd.DataFrame(candidates).sort_values(
+        "global_hit_score",
+        ascending=False
+    )
+
+    return result
 
 
 if mode == "Dashboard":
@@ -228,6 +466,21 @@ if mode == "Dashboard":
             base_df[base_df["company_group"] == "Others"],
             "🏢 Other Companies"
         )
+
+    st.markdown("---")
+
+    st.subheader("🎯 Customize Analysis")
+
+    selected_market_single = st.selectbox(
+        "Select Main Market",
+        options=sorted(base_df["main_market"].unique())
+    )
+
+    filtered_df = base_df[base_df["main_market"] == selected_market_single]
+
+    st.write(f"Showing data for market: {selected_market_single}")
+
+    st.dataframe(filtered_df, use_container_width=True)
 
     st.markdown("---")
 
@@ -319,50 +572,98 @@ if mode == "Dashboard":
 
     st.markdown("---")
 
-    st.subheader("🤖 AI-Style Insight Generator")
+    st.subheader("🤖 AI Insight & Strategy Recommendation")
 
-    if st.button("🤖 Generate Industry Insight"):
-        insight_text = generate_ai_style_insight(base_df)
-        st.info(insight_text)
+    col_insight, col_strategy = st.columns(2)
+
+    with col_insight:
+        if st.button("🚀 Generate AI Insight Report"):
+            insight = generate_ai_insight(base_df)
+            st.markdown(insight)
+
+    with col_strategy:
+        if st.button("📈 Generate Strategy Recommendation"):
+            top_market = base_df["main_market"].value_counts().idxmax()
+
+            recommendation = f"""
+    Based on current data, companies should prioritize expansion into **{top_market}** market.
+
+    Focusing on this region could increase global influence and audience reach.
+    """
+            st.success(recommendation)
 
     st.markdown("---")
 
-    st.subheader("🎯 Customize Analysis")
+    st.subheader("🚀 Market Expansion Strategy Engine")
 
-    selected_market_single = st.selectbox(
-        "Select Main Market",
-        options=sorted(base_df["main_market"].unique())
-    )
+    col_us, col_next = st.columns(2)
 
-    filtered_df = base_df[base_df["main_market"] == selected_market_single]
+    with col_us:
+        if st.button("🇺🇸 Generate US Market Strategy Report"):
+            strategy = generate_us_strategy(base_df)
+            st.markdown(strategy)
 
-    st.write(f"Showing data for market: {selected_market_single}")
-
-    st.dataframe(filtered_df, use_container_width=True)
+    with col_next:
+        if st.button("🔮 Predict Next Market"):
+            market_prediction = predict_next_market(base_df)
+            st.markdown(market_prediction)
 
     st.markdown("---")
 
-    st.subheader("📈 Strategy Recommendation")
+    st.subheader("🇺🇸 Company US Potential Score")
 
-    top_market = base_df["main_market"].value_counts().idxmax()
+    us_score_df = calculate_us_potential(base_df)
 
-    recommendation = f"""
-Based on current data, companies should prioritize expansion into **{top_market}** market.
+    st.dataframe(us_score_df, use_container_width=True)
 
-Focusing on this region could increase global influence and audience reach.
-"""
+    st.bar_chart(us_score_df.set_index("company")["us_potential_score"])
 
-    st.success(recommendation)
+    best_company = us_score_df.iloc[0]["company"]
+
+    st.success(f"""
+    🏆 Final Strategic Recommendation:
+
+    Based on the analysis, **{best_company}** has the highest potential to succeed in the US market.
+
+    👉 Recommended actions:
+    - Focus on global branding
+    - Increase English-language releases
+    - Strengthen TikTok and Spotify presence
+    - Develop solo/sub-unit strategies
+    """)
+
+    st.markdown("---")
+
+    st.subheader("🌍 Next Global Hit Predictor")
+
+    global_hit_df = predict_next_global_hit(base_df)
+
+    st.dataframe(global_hit_df, use_container_width=True)
+
+    top_artist = global_hit_df.iloc[0]["artist_name"]
+    top_company = global_hit_df.iloc[0]["company"]
+
+    st.success(f"""
+    🔥 Most Likely Next Global Hit:
+
+    **{top_artist}** from **{top_company}**
+
+    Why:
+    - Strong market potential
+    - Recent generation advantage
+    - Global expansion readiness
+    - Company-level support
+    """)
 
     st.markdown("---")
 
     st.subheader("📌 Data Notes")
     st.write("""
-This dataset focuses on officially recognised and currently relevant K-pop artists and related solo acts.
+    This dataset focuses on officially recognised and currently relevant K-pop artists and related solo acts.
 
-Company classification is based on current or officially recognised affiliation where possible.  
-For analysis purposes, SM, JYP, YG, and HYBE are treated as major company groups, while other companies are grouped under Others in the dashboard view.
-""")
+    Company classification is based on current or officially recognised affiliation where possible.  
+    For analysis purposes, SM, JYP, YG, and HYBE are treated as major company groups, while other companies are grouped under Others in the dashboard view.
+    """)
 
 
 elif mode == "Story Mode":
@@ -428,4 +729,4 @@ The industry is moving from a Korea-centered model toward a more diversified glo
 
     st.subheader("🤖 Story Insight")
 
-    st.info(generate_ai_style_insight(base_df))
+    st.info(generate_ai_insight(base_df))
